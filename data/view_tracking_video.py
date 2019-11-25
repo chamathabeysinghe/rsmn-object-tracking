@@ -9,7 +9,7 @@ import cv2 as cv
 def get_frames(path):
     frames = []
     rois_in_frame = []
-    for i in range(20):
+    for i in range(100):
         img = np.array(Image.open(os.path.join(path, 'frame_{}.png'.format(i))))
         frames.append(img)
 
@@ -43,13 +43,9 @@ def visualize_sequence(video):
 def add_tracks(video, rois_in_frame):
     tracked_frames = []
     for i in range(len(video)):
-        print(i)
         frame = video[i]
         rois = rois_in_frame[i]
-        print(type(frame))
-        print(frame.shape)
         for roi in rois:
-            print(roi)
             x0, y0, x1, y1 = roi
             frame[x0, y0:y1, :] = 0
             frame[x1, y0:y1, :] = 0

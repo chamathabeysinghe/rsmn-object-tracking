@@ -6,13 +6,14 @@ import os
 
 def get_processed_frames(path):
     frames = []
-    for i in range(20):
+    df = pd.read_csv(os.path.join(path, 'data.csv'))
+    df_data = df.values
+    for i in range(len(df.index)):
         img = np.asarray(Image.open(os.path.join(path, 'frame_{}.png'.format(i))))
         frames.append(img)
     image_size = frames[0].shape
     image_height = image_size[0]
     image_width = image_size[1]
-    df_data = pd.read_csv(os.path.join(path, 'data.csv')).values
 
     current_frames = []
     current_rois = []
