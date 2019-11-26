@@ -142,3 +142,6 @@ dmypy.json
 ./data/train/
 *.png
 *.csv
+*.mp4
+*.mov
+*.txt
