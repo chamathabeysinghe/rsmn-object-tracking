@@ -2,8 +2,8 @@ from tensorflow.keras.layers import Input, Conv2D
 from tensorflow.keras import Sequential, Model
 from model.ROIPoolingLayer import ROIPoolingLayer
 
-pooled_height = 3
-pooled_width = 3
+pooled_height = 2
+pooled_width = 2
 
 
 class RandomKernelModel:
