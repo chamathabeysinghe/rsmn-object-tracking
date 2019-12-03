@@ -4,7 +4,7 @@ import pandas as pd
 import os
 
 
-def get_processed_frames(path):
+def get_processed_frames(path, relative=True):
     frames = []
     df = pd.read_csv(os.path.join(path, 'data.csv'))
     df_data = df.values
@@ -24,10 +24,11 @@ def get_processed_frames(path):
         roi_row = []
         for j in range(1, len(row)):
             roi = eval(row[j])
-            roi[0] /= image_height
-            roi[1] /= image_width
-            roi[2] /= image_height
-            roi[3] /= image_width
+            if relative:
+                roi[0] /= image_height
+                roi[1] /= image_width
+                roi[2] /= image_height
+                roi[3] /= image_width
             roi_row.append(roi)
         return roi_row
 
@@ -45,3 +46,10 @@ def get_processed_frames(path):
 
     return current_frames, current_rois, future_frames, future_rois
 
+
+def get_frames(path, start, end):
+    frames = []
+    for i in range(start, end+1):
+        img = np.array(Image.open(os.path.join(path, 'frame_{}.png'.format(i))))
+        frames.append(img)
+    return frames
