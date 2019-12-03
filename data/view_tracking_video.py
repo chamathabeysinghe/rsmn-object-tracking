@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import cv2 as cv
+import matplotlib
 
 
 def get_frames(path):
@@ -33,11 +34,24 @@ def get_frames(path):
 
 
 def visualize_sequence(video):
+    plt.rcParams["figure.figsize"] = (30, 10)
+
     for frame in video:
         # cv.imshow('frame', frame)
         # cv.waitKey(100)
         plt.imshow(frame)
-        plt.pause(.5)
+        plt.pause(.1)
+
+
+def visualize_two_sequences(original, predicted):
+    plt.rcParams["figure.figsize"] = (60, 20)
+
+    for i in range(len(original)):
+        f, axarr = plt.subplots(1, 2)
+        axarr[0].imshow(original[i])
+        axarr[1].imshow(predicted[i])
+        plt.pause(.1)
+
 
 
 def add_tracks(video, rois_in_frame):
@@ -55,6 +69,42 @@ def add_tracks(video, rois_in_frame):
     return tracked_frames
 
 
-frames, rois_in_frame = get_frames('./videos/frames_test')
-tracked_frames = add_tracks(frames, rois_in_frame)
-visualize_sequence(frames)
+def add_tracks_with_colors(video, rois_in_frame, colors):
+    tracked_frames = []
+    for i in range(len(video)):
+        frame = video[i]
+        rois = rois_in_frame[i]
+        for j in range(len(rois)):
+            roi = rois[j]
+            color = colors[i, j]
+            x0, y0, x1, y1 = roi
+            frame[x0, y0:y1, :] = color
+            frame[x1, y0:y1, :] = color
+            frame[x0:x1, y0, :] = color
+            frame[x0:x1, y1, :] = color
+        tracked_frames.append(frame)
+    return tracked_frames
+
+
+def add_tracks_with_single_colors(video, rois_in_frame, colors, frame_roi_colors_multiple):
+    tracked_frames = []
+    for i in range(len(video)):
+        frame = video[i]
+        rois = rois_in_frame[i]
+        for j in range(len(rois)):
+            if i > 0 and frame_roi_colors_multiple[i, j] != 1:
+                continue
+
+            roi = rois[j]
+            color = colors[i, j]
+            x0, y0, x1, y1 = roi
+            frame[x0, y0:y1, :] = color
+            frame[x1, y0:y1, :] = color
+            frame[x0:x1, y0, :] = color
+            frame[x0:x1, y1, :] = color
+        tracked_frames.append(frame)
+    return tracked_frames
+
+# frames, rois_in_frame = get_frames('./videos/frames_train')
+# tracked_frames = add_tracks(frames, rois_in_frame)
+# visualize_sequence(frames)
