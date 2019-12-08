@@ -2,8 +2,9 @@ from tensorflow.keras.layers import Input, Conv2D
 from tensorflow.keras import Sequential, Model
 from model.ROIPoolingLayer import ROIPoolingLayer
 
-pooled_height = 2
-pooled_width = 2
+# TODO make this 2x2 for with PCA classification
+pooled_height = 1
+pooled_width = 1
 
 
 class RandomKernelModel:
