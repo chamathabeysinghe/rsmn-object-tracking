@@ -53,3 +53,13 @@ def get_frames(path, start, end):
         img = np.array(Image.open(os.path.join(path, 'frame_{}.png'.format(i))))
         frames.append(img)
     return frames
+
+
+def get_processed_frames_for_multiple_videos(path, relative=True):
+    videos = [os.path.join(path, x) for x in os.listdir(path)]
+    result = []
+    for video in videos:
+        result.append(get_processed_frames(video, relative))
+
+    return result
+

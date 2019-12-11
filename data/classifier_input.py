@@ -59,6 +59,17 @@ def get_processed_classifier_input(dnn_output, normalized=False, balanced=True, 
     return X, y
 
 
+def get_processed_classifier_input_for_multiple_videos(dnn_outputs, normalized=False, balanced=True, do_shuffle=True):
+    X = []
+    y = []
+    for dnn_output in dnn_outputs:
+        X_video, y_video = get_processed_classifier_input(dnn_output, normalized=False, balanced=True, do_shuffle=True)
+        X += X_video
+        y += y_video
+
+    return X, y
+
+
 def get_processed_classifier_input_inference(dnn_output, normalized=False, balanced=True, do_shuffle=True):
 
     if not normalized:
