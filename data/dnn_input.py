@@ -63,3 +63,10 @@ def get_processed_frames_for_multiple_videos(path, relative=True):
 
     return result
 
+
+def get_frames_for_multiple_videos(path, start, end):
+    paths = [os.path.join(path, x) for x in os.listdir(path)]
+    all_frames = []
+    for subpath in paths:
+        all_frames.append(get_frames(subpath, start, end))
+    return all_frames

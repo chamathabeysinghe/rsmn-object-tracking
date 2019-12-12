@@ -1,98 +1,127 @@
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.layers import Input, Conv2D
-from tensorflow.keras import Sequential, Model
 import numpy as np
-from PIL import Image
-import matplotlib.pyplot as plt
-import pandas as pd
 import os
 from data import dnn_input
 from model.RandomKernelModel import RandomKernelModel
 from data import classifier_input
 from sklearn.linear_model import RidgeClassifierCV
-from sklearn.decomposition import KernelPCA
-from sklearn.externals import joblib
-import seaborn as sn
-import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
-from scipy import stats
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import Normalizer
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import f1_score
-
-train_data = dnn_input.get_processed_frames(os.path.abspath('./data/videos/frames_train/'))
-test_data = dnn_input.get_processed_frames(os.path.abspath('./data/videos/frames_test/'))
-
-
-def test_kernel_sizes(size):
-    model = RandomKernelModel.build_model((240, 320, 6), (10, 4), kernel_count=size)
-    output_train = model.predict(train_data, batch_size=16)
-    output_test = model.predict(test_data, batch_size=16)
-
-    X_train, y_train = classifier_input.get_processed_classifier_input(output_train, normalized=True)
-    X_train_unbalanced, y_train_unbalanced = classifier_input.get_processed_classifier_input(output_train,
-                                                                                             normalized=True,
-                                                                                             balanced=False)
-    X_test, y_test = classifier_input.get_processed_classifier_input(output_test, normalized=True)
-    X_test_proper, y_test_proper = classifier_input.get_processed_classifier_input(output_test, normalized=True,
-                                                                                   balanced=False)
-
-    X_test_proper = np.asarray(X_test_proper)
-    y_test_proper = np.asarray(y_test_proper)
-
-    np.save('X_train', X_train)
-    np.save('y_train', y_train)
-    np.save('X_train_unbalanced', X_train_unbalanced)
-    np.save('y_train_unbalanced', y_train_unbalanced)
-    np.save('X_test', X_test)
-    np.save('y_test', y_test)
-    np.save('X_test_proper', X_test_proper)
-    np.save('y_test_proper', y_test_proper)
-
-    X_train = np.load('X_train.npy')
-    y_train = np.load('y_train.npy')
-    X_train_unbalanced = np.load('X_train_unbalanced.npy')
-    y_train_unbalanced = np.load('y_train_unbalanced.npy')
-    X_test = np.load('X_test.npy')
-    y_test = np.load('y_test.npy')
-    X_test_proper = np.load('X_test_proper.npy')
-    y_test_proper = np.load('y_test_proper.npy')
-
-    min_max_scaler = MinMaxScaler(feature_range=(-.5, .5))
-    normalizer = Normalizer()
-
-    X_train_cp = min_max_scaler.fit_transform(X_train)
-    X_test_cp = min_max_scaler.transform(X_test)
-    X_test_proper_cp = min_max_scaler.transform(X_test_proper)
-    X_train_unbalanced_cp = min_max_scaler.transform(X_train_unbalanced)
-
-    X_train_cp = normalizer.fit_transform(X_train)
-    X_test_cp = normalizer.transform(X_test)
-    X_test_proper_cp = normalizer.transform(X_test_proper)
-    X_train_unbalanced_cp = normalizer.transform(X_train_unbalanced)
-
-    clf = LGBMClassifier(n_estimators=2000)
-    clf.fit(X_train_cp, y_train)
-
-    balanced_validation_score = clf.score(X_test_cp, y_test)
-    proper_validation_score = clf.score(X_test_proper_cp, y_test_proper)
-    y_predict_proper = clf.predict(X_test_proper_cp)
-
-    data = confusion_matrix(y_test_proper, y_predict_proper)
-
-    precision, recall, _, _ = precision_recall_fscore_support(y_test_proper, y_predict_proper, average='binary')
-    f1 = f1_score(y_test_proper, y_predict_proper)
-
-    print('{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}'.format(int(balanced_validation_score * 1000) / 1000,
-                                                          int(proper_validation_score * 1000) / 1000,
-                                                          int(precision * 1000) / 1000, int(recall * 1000) / 1000,
-                                                          int(f1 * 1000) / 1000))
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 
 
-for size in [5, 10, 20, 40, 50, 75, 100, 200, 400, 800]:
-    print(size)
-    test_kernel_sizes(size)
+train_data = dnn_input.get_processed_frames_for_multiple_videos(os.path.abspath('./data/train/'))
+test_data = dnn_input.get_processed_frames_for_multiple_videos(os.path.abspath('./data/test/'))
+
+
+def get_dnn_output(kernel_count=400):
+    model = RandomKernelModel.build_model((240, 320, 6), (10, 4), kernel_count=kernel_count)
+
+    output_train = []
+    for video_data in train_data:
+        output_train.append(model.predict(video_data, batch_size=16))
+
+    output_test = []
+    for video_data in test_data:
+        output_test.append(model.predict(video_data, batch_size=16))
+
+    return output_train, output_test
+
+
+def get_classifier_input(output_train, output_test, normalize=True, pca=True, pca_components=200, train_balanced=True, test_balanced=False):
+    X_train_balanced, y_train_balanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_train, normalized=True)
+    X_train_unbalanced, y_train_unbalanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_train, normalized=True, balanced=False)
+    X_test_balanced, y_test_balanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_test, normalized=True)
+    X_test_unbalanced, y_test_unbalanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_test, normalized=True, balanced=False)
+
+    if train_balanced:
+        X_train = X_train_balanced
+        y_train = y_train_balanced
+    else:
+        X_train = X_train_unbalanced
+        y_train = y_train_unbalanced
+
+    if test_balanced:
+        X_test = X_test_balanced
+        y_test = y_test_balanced
+    else:
+        X_test = X_test_unbalanced
+        y_test = y_test_unbalanced
+
+    if normalize:
+        normalizer = Normalizer()
+        X_train = normalizer.fit_transform(X_train)
+        X_test = normalizer.transform(X_test)
+
+    if pca:
+        pca = PCA(n_components=pca_components, whiten=False, random_state=2019)
+        X_train = pca.fit_transform(X_train)
+        X_test = pca.transform(X_test)
+
+    return X_train, y_train, X_test, y_test
+
+
+def get_classifier(clf_name):
+    svmClf = SVC(gamma='auto')
+    advancedSvmClf = SVC(gamma='auto', kernel='rbf', probability=True, class_weight='balanced', C=120000000)
+    ridgeClf = RidgeClassifierCV(alphas=np.logspace(-3, 3, 10), normalize=True)
+    randomForestClf = RandomForestClassifier(n_estimators=200, max_depth=7, random_state=0)
+    gradientBoostClf = GradientBoostingClassifier(n_estimators=200, max_depth=7, random_state=0)
+    xgbClf = XGBClassifier(n_estimators=500, max_depth=5)
+    adaBoostClf = AdaBoostClassifier()
+    lgbmClf = LGBMClassifier(n_estimators=2000)
+
+    if clf_name == 'svm':
+        return svmClf
+    elif clf_name == 'advanced_svm':
+        return advancedSvmClf
+    elif clf_name == 'ridge':
+        return ridgeClf
+    elif clf_name == 'random_forest':
+        return randomForestClf
+    elif clf_name == 'gradient_boosting':
+        return gradientBoostClf
+    elif clf_name == 'xgb':
+        return xgbClf
+    elif clf_name == 'ada_boost':
+        return adaBoostClf
+    elif clf_name == 'lgbm':
+        return lgbmClf
+
+
+def evaluate_classifier(clf, X, y):
+    score = clf.score(X, y)
+    y_predict = clf.predict(X)
+
+    precision, recall, _, _ = precision_recall_fscore_support(y, y_predict, average='binary')
+    f1 = f1_score(y, y_predict)
+
+    data = confusion_matrix(y, y_predict)
+
+    return [score, int(precision * 1000) / 1000, int(recall * 1000) / 1000, int(f1 * 1000) / 1000]
+
+
+def run_tests():
+    # kernel_sizes = [20, 40, 50, 75, 100, 200, 400, 800]
+    kernel_sizes = [100, 200, 400, 800]
+
+    for size in kernel_sizes:
+        output_train, output_test = get_dnn_output(kernel_count=size)
+        X_train, y_train, X_test, y_test = get_classifier_input(output_train, output_test, normalize=True, pca=True, pca_components=100)
+        clf = get_classifier('lgbm')
+        clf.fit(X_train, y_train)
+        result = evaluate_classifier(clf, X_test, y_test)
+        print('{:.3f}, {:.3f}, {:.3f}, {:.3f}'.format(*result))
+
+    for size in kernel_sizes:
+        print('{} Kernels + Normalizer + PCA (100 Components) + LGBM Classifier (n_estimators=2000)'.format(size))
+
+
+run_tests()
