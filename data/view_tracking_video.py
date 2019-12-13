@@ -43,6 +43,13 @@ def visualize_sequence(video):
         plt.pause(.1)
 
 
+def write_to_files(frames, parent_path):
+    for index, frame in enumerate(frames):
+        path = os.path.join(parent_path, 'frame_{}.png'.format(index))
+        image = Image.fromarray(frame)
+        image.save(path)
+
+
 def visualize_two_sequences(original, predicted):
     plt.rcParams["figure.figsize"] = (60, 20)
 
