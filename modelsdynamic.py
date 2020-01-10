@@ -24,6 +24,9 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import f1_score
 from sklearn.decomposition import PCA
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+
 
 train_data = dnn_input.get_processed_frames(os.path.abspath('./data/videos/frames_train/'))
 test_data = dnn_input.get_processed_frames(os.path.abspath('./data/videos/frames_test/'))
@@ -76,13 +79,20 @@ def test_kernel_sizes(size):
     X_test_proper_cp = normalizer.transform(X_test_proper)
     X_train_unbalanced_cp = normalizer.transform(X_train_unbalanced)
 
-    pca = PCA(n_components=20, whiten=False, random_state=2019)
+    pca = PCA(n_components=10, whiten=False, random_state=2019)
     X_pca_train = pca.fit_transform(X_train_cp)
+    # X_pca_train_unbalanced = pca.fit_transform(X_train_unbalanced_cp)
     X_pca_test = pca.transform(X_test_cp)
     X_pca_test_proper = pca.transform(X_test_proper_cp)
 
     clf = LGBMClassifier(n_estimators=2000)
     clf.fit(X_pca_train, y_train)
+
+    # clf = SVC(gamma='auto', kernel='rbf', probability=True, class_weight='balanced', C=12000000)
+    # clf.fit(X_pca_train_unbalanced, y_train_unbalanced)
+
+    # clf = RandomForestClassifier(n_estimators=200, max_depth=7, random_state=0)
+    # clf.fit(X_pca_train, y_train)
 
     balanced_validation_score = clf.score(X_pca_test, y_test)
     proper_validation_score = clf.score(X_pca_test_proper, y_test_proper)
@@ -99,5 +109,5 @@ def test_kernel_sizes(size):
                                                           int(f1 * 1000) / 1000))
 
 
-for size in [20, 40, 50, 75, 100, 200, 400, 800]:
+for size in [40, 50, 75, 100, 200, 400, 800]:
     test_kernel_sizes(size)

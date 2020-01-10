@@ -15,8 +15,10 @@ from data import classifier_input
 from data import view_tracking_video
 from sklearn.externals import joblib
 from copy import copy, deepcopy
+from scipy.optimize import linear_sum_assignment
 
-model = RandomKernelModel.build_model((240, 320, 6),(10, 4), kernel_count=200)
+
+model = RandomKernelModel.build_model((240, 320, 6),(10, 4), kernel_count=400)
 model.load_weights('./checkpoints/saved_model_withoutpca_moredata')
 
 # test_data = dnn_input.get_processed_frames(os.path.abspath('./data/videos/frames_test/'))
@@ -102,19 +104,33 @@ def inference_one_video(path):
     # tracked_frames = view_tracking_video.add_tracks_with_colors(frames, rois, frame_roi_colors)
     # view_tracking_video.visualize_sequence(tracked_frames)
 
-
+    """
     for frame_index in range(0, y_predict_proper.shape[0] - 1):
-        for roi_match_index in range(y_predict_proper.shape[1]):
+    for roi_match_index in range(y_predict_proper.shape[1]):
 
-            if y_predict_proper[frame_index, roi_match_index] == 1:
-                current_frame_roi_index = int(roi_match_index / 10)
-                future_frame_roi_index = roi_match_index % 10
-                frame_roi_colors_2[frame_index+1, future_frame_roi_index] = frame_roi_colors_original[frame_index, current_frame_roi_index]
-                frame_roi_colors_multiple[frame_index+1, future_frame_roi_index] += 1
+        if y_predict_proper[frame_index, roi_match_index] == 1:
+            current_frame_roi_index = int(roi_match_index / 10)
+            future_frame_roi_index = roi_match_index % 10
+            frame_roi_colors_2[frame_index+1, future_frame_roi_index] = frame_roi_colors_original[frame_index, current_frame_roi_index]
+            frame_roi_colors_multiple[frame_index+1, future_frame_roi_index] += 1
 
     tracked_frames = view_tracking_video.add_tracks_with_single_colors(deepcopy(frames), rois, frame_roi_colors_2, frame_roi_colors_multiple)
     view_tracking_video.visualize_two_sequences(tracked_frames_original, tracked_frames)
     # view_tracking_video.visualize_sequence(tracked_frames)
+    """
 
+    reshape_y_predict_proper_prob = y_predict_proper_prob.reshape((46, 10, 10))
+    reshape_y_predict_proper_prob = -1 * reshape_y_predict_proper_prob
+    frame_optimization = np.zeros((46, 10, 10))
 
+    for frame_index in range(0, 45):
+        pd.DataFrame(reshape_y_predict_proper_prob[frame_index]).to_csv(
+            './data/view/probs/{}.csv'.format(frame_index + 1))
+        row_ind, col_ind = linear_sum_assignment(reshape_y_predict_proper_prob[frame_index])
+        for f_roi in range(10):
+            p_roi = col_ind[f_roi]
+            frame_optimization[frame_index, p_roi, f_roi] = 1
+            frame_roi_colors_2[frame_index + 1, f_roi] = frame_roi_colors_original[frame_index, p_roi]
+
+    print('Done')
 inference_one_video('./data/test/4')

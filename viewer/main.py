@@ -38,6 +38,10 @@ class Main:
 
         canvas_originals = Canvas(top_frame, width=320, height=240)
         canvas_predictions = Canvas(top_frame, width=320, height=240)
+        color_palette = Canvas(top_frame, width=70, height=240)
+        self.color_palette_image = ImageTk.PhotoImage(Image.open('../data/view/image.png'))
+        color_palette.create_image(20, 20, anchor=NW, image=self.color_palette_image)
+
         button_next = ttk.Button(bottom_frame, text="Play next", command=self.play_next)
         button_prev = ttk.Button(bottom_frame, text="Play prev", command=self.play_prev)
         button_play = ttk.Button(bottom_frame, text="Play", command=self.play_button)
@@ -46,6 +50,7 @@ class Main:
         index_label = ttk.Label(bottom_frame, text='-1')
         canvas_originals.pack(side=LEFT)
         canvas_predictions.pack(side=LEFT)
+        color_palette.pack(side=LEFT)
         button_next.pack(side=TOP)
         button_prev.pack(side=TOP)
         button_play.pack(side=TOP)
