@@ -17,11 +17,7 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 
 
-train_data = dnn_input.get_processed_frames_for_multiple_videos(os.path.abspath('./data/train/'))
-test_data = dnn_input.get_processed_frames_for_multiple_videos(os.path.abspath('./data/test/'))
-
-
-def get_dnn_output(kernel_count=400):
+def get_dnn_output(train_data, test_data, kernel_count=400):
     model = RandomKernelModel.build_model((240, 320, 6), (10, 4), kernel_count=kernel_count)
 
     output_train = []
@@ -35,11 +31,11 @@ def get_dnn_output(kernel_count=400):
     return output_train, output_test
 
 
-def get_classifier_input(output_train, output_test, normalize=True, pca=True, pca_components=200, train_balanced=True, test_balanced=False):
-    X_train_balanced, y_train_balanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_train, normalized=True)
-    X_train_unbalanced, y_train_unbalanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_train, normalized=True, balanced=False)
-    X_test_balanced, y_test_balanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_test, normalized=True)
-    X_test_unbalanced, y_test_unbalanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_test, normalized=True, balanced=False)
+def get_classifier_input(output_train, output_test, normalize=True, pca=True, pca_components=200, train_balanced=True, test_balanced=False, train_positions_data=None, test_positions_data=None):
+    X_train_balanced, y_train_balanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_train, positions_data=train_positions_data, normalized=True)
+    X_train_unbalanced, y_train_unbalanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_train, positions_data=train_positions_data, normalized=True, balanced=False)
+    X_test_balanced, y_test_balanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_test, positions_data=test_positions_data, normalized=True)
+    X_test_unbalanced, y_test_unbalanced = classifier_input.get_processed_classifier_input_for_multiple_videos(output_test, positions_data=test_positions_data, normalized=True, balanced=False)
 
     if train_balanced:
         X_train = X_train_balanced
@@ -76,7 +72,7 @@ def get_classifier(clf_name):
     gradientBoostClf = GradientBoostingClassifier(n_estimators=200, max_depth=7, random_state=0)
     xgbClf = XGBClassifier(n_estimators=500, max_depth=5)
     adaBoostClf = AdaBoostClassifier()
-    lgbmClf = LGBMClassifier(n_estimators=2000)
+    lgbmClf = LGBMClassifier(n_estimators=1000)
 
     if clf_name == 'svm':
         return svmClf
@@ -109,19 +105,25 @@ def evaluate_classifier(clf, X, y):
 
 
 def run_tests():
-    # kernel_sizes = [20, 40, 50, 75, 100, 200, 400, 800]
-    kernel_sizes = [100, 200, 400, 800]
+    train_data = dnn_input.get_processed_frames_for_multiple_videos(os.path.abspath('./data/train/'))
+    test_data = dnn_input.get_processed_frames_for_multiple_videos(os.path.abspath('./data/test/'))
+
+    train_roi_data = dnn_input.get_rois_for_multiple_videos(os.path.abspath('./data/train/'))
+    test_roi_data = dnn_input.get_rois_for_multiple_videos(os.path.abspath('./data/test/'))
+
+    kernel_sizes = [50, 75, 100, 200, 400, 800]
+    # kernel_sizes = [100, 200, 400, 800]
 
     for size in kernel_sizes:
-        output_train, output_test = get_dnn_output(kernel_count=size)
-        X_train, y_train, X_test, y_test = get_classifier_input(output_train, output_test, normalize=True, pca=True, pca_components=100)
+        output_train, output_test = get_dnn_output(train_data=train_data, test_data=test_data, kernel_count=size)
+        X_train, y_train, X_test, y_test = get_classifier_input(output_train, output_test, normalize=True, pca=True, pca_components=4, train_positions_data=train_roi_data, test_positions_data=test_roi_data)
         clf = get_classifier('lgbm')
         clf.fit(X_train, y_train)
         result = evaluate_classifier(clf, X_test, y_test)
         print('{:.3f}, {:.3f}, {:.3f}, {:.3f}'.format(*result))
 
     for size in kernel_sizes:
-        print('{} Kernels + Normalizer + PCA (100 Components) + LGBM Classifier (n_estimators=2000)'.format(size))
+        print('{} Kernels + Normalizer + PCA (8 Components) + LGBM Classifier (n_estimators=20) + Position Data'.format(size))
 
 
 run_tests()
