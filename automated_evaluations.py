@@ -18,7 +18,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 
 
 def get_dnn_output(train_data, test_data, kernel_count=400):
-    model = RandomKernelModel.build_model((240, 320, 6), (10, 4), kernel_count=kernel_count)
+    model = RandomKernelModel.build_model((180, 320, 6), (10, 4), kernel_count=kernel_count)
 
     output_train = []
     for video_data in train_data:

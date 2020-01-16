@@ -54,7 +54,7 @@ def get_processed_classifier_input(dnn_output, position_data=None, normalized=Fa
             # TODO change bellow 4 lines, this is to test how using
             features_current = np.concatenate((features_current, roi_current), axis=3)
             features_future = np.concatenate((features_future, rois_future), axis=3)
-
+            #
             # features_current = roi_current
             # features_future = rois_future
 
